@@ -107,7 +107,7 @@ namespace PTZ
                instData, Marshal.SizeOf(control.Instance), controlData, Marshal.SizeOf(control));
 
             //TODO: It's a DC motor, no better way?
-            Thread.Sleep(20);
+            Thread.Sleep(300);
 
             control.Instance.Value = 0; //STOP!
             control.Instance.Flags = (int)CameraControlFlags.Relative;
