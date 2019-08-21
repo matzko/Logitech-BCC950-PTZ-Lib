@@ -72,6 +72,11 @@ namespace PTZ
             return (supported.HasFlag(KSPropertySupport.Set) && supported.HasFlag(KSPropertySupport.Get));
         }
 
+        public static DsDevice[] Devices()
+        {
+            return DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
+        }
+
         public void Move(int x, int y) //TODO: Is this the best public API? Should work for Relative AND Absolute, right?
         {
             //TODO: Make it work for Absolute also...using the PTZEnum
