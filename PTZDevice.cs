@@ -84,13 +84,66 @@ namespace PTZ
             //first, tilt
             if (y != 0)
             {
-                MoveInternal(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_TILT_RELATIVE, y);
+                MoveLongTime(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_TILT_RELATIVE, y);
             }
 
             if (x != 0)
             {
-                MoveInternal(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PAN_RELATIVE, x);
+                MoveLongTime(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PAN_RELATIVE, x);
             }
+        }
+
+        private void MoveLongTime(KSProperties.CameraControlFeature axis, int value)
+        {
+            // Create and prepare data structures
+            var control = new KSProperties.KSPROPERTY_CAMERACONTROL_S();
+
+            IntPtr controlData = Marshal.AllocCoTaskMem(Marshal.SizeOf(control));
+            IntPtr instData = Marshal.AllocCoTaskMem(Marshal.SizeOf(control.Instance));
+
+            control.Instance.Value = value;
+
+            //TODO: Fix for Absolute
+            control.Instance.Flags = (int)CameraControlFlags.Relative;
+
+            Marshal.StructureToPtr(control, controlData, true);
+            Marshal.StructureToPtr(control.Instance, instData, true);
+            var hr2 = _ksPropertySet.Set(PROPSETID_VIDCAP_CAMERACONTROL, (int)axis,
+               instData, Marshal.SizeOf(control.Instance), controlData, Marshal.SizeOf(control));
+
+            // do stop after a while, to be safe
+            Thread.Sleep(2500);
+
+            control.Instance.Value = 0; //STOP!
+            control.Instance.Flags = (int)CameraControlFlags.Relative;
+
+            Marshal.StructureToPtr(control, controlData, true);
+            Marshal.StructureToPtr(control.Instance, instData, true);
+            var hr3 = _ksPropertySet.Set(PROPSETID_VIDCAP_CAMERACONTROL, (int)axis,
+               instData, Marshal.SizeOf(control.Instance), controlData, Marshal.SizeOf(control));
+
+            if (controlData != IntPtr.Zero) { Marshal.FreeCoTaskMem(controlData); }
+            if (instData != IntPtr.Zero) { Marshal.FreeCoTaskMem(instData); }
+        }
+
+        public void StopMove()
+        {
+            // Create and prepare data structures
+            var control = new KSProperties.KSPROPERTY_CAMERACONTROL_S();
+
+            IntPtr controlData = Marshal.AllocCoTaskMem(Marshal.SizeOf(control));
+            IntPtr instData = Marshal.AllocCoTaskMem(Marshal.SizeOf(control.Instance));
+
+            control.Instance.Flags = (int)CameraControlFlags.Relative;
+
+            control.Instance.Value = 0; //STOP!
+            control.Instance.Flags = (int)CameraControlFlags.Relative;
+
+            Marshal.StructureToPtr(control, controlData, true);
+            Marshal.StructureToPtr(control.Instance, instData, true);
+
+            if (controlData != IntPtr.Zero) { Marshal.FreeCoTaskMem(controlData); }
+            if (instData != IntPtr.Zero) { Marshal.FreeCoTaskMem(instData); }
         }
 
         private void MoveInternal(KSProperties.CameraControlFeature axis, int value)
