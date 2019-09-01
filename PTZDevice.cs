@@ -79,6 +79,32 @@ namespace PTZ
             return DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
         }
 
+        public IDictionary<string, bool> DeviceSupportedProperties()
+        {
+            var dictionary = new Dictionary<string, bool>();
+            dictionary.Add("PAN", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PAN));
+            dictionary.Add("TILT", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_TILT));
+            dictionary.Add("ROLL", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_ROLL));
+            dictionary.Add("ZOOM", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_ZOOM));
+            dictionary.Add("EXPOSURE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_EXPOSURE));
+            dictionary.Add("IRIS", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_IRIS));
+            dictionary.Add("FOCUS", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_FOCUS));
+            dictionary.Add("SCANMODE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_SCANMODE));
+            dictionary.Add("PRIVACY", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PRIVACY));
+            dictionary.Add("PANTILT", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PANTILT));
+            dictionary.Add("PAN_RELATIVE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PAN_RELATIVE));
+            dictionary.Add("TILT_RELATIVE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_TILT_RELATIVE));
+            dictionary.Add("ROLL_RELATIVE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_ROLL_RELATIVE));
+            dictionary.Add("ZOOM_RELATIVE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_ZOOM_RELATIVE));
+            dictionary.Add("EXPOSURE_RELATIVE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_EXPOSURE_RELATIVE));
+            dictionary.Add("IRIS_RELATIVE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_IRIS_RELATIVE));
+            dictionary.Add("FOCUS_RELATIVE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_FOCUS_RELATIVE));
+            dictionary.Add("PANTILT_RELATIVE", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PANTILT_RELATIVE));
+            dictionary.Add("FOCAL_LENGTH", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_FOCAL_LENGTH));
+            dictionary.Add("AUTO_EXPOSURE_PRIORITY", SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_AUTO_EXPOSURE_PRIORITY));
+            return dictionary;
+        }
+
         public void Move(int x, int y) //TODO: Is this the best public API? Should work for Relative AND Absolute, right?
         {
             //TODO: Make it work for Absolute also...using the PTZEnum
