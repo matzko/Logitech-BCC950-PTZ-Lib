@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
@@ -17,6 +18,7 @@ namespace PTZ
 
     public class PTZDevice
     {
+        static bool doLog = true;
         private readonly Guid PROPSETID_VIDCAP_CAMERACONTROL = new Guid(0xc6e13370, 0x30ac, 0x11d0, 0xa1, 0x8c, 0x00, 0xa0, 0xc9, 0x11, 0x89, 0x56);
         
         private DsDevice _device;
@@ -218,6 +220,20 @@ namespace PTZ
         public static PTZDevice GetDevice(string name, PTZType type)
         {
             return new PTZDevice(name, type);
+        }
+
+        static void Log(String message)
+        {
+            if (doLog)
+            {
+                message = DateTime.Now.ToString("yyyy-MM-dd h:mm:ss tt") + ": " + message;
+                // string filePath = System.AppDomain.CurrentDomain.BaseDirectory + "app.log";
+                string filePath = "C:\\Windows\\Temp\\visuwell-fecc.log";
+                using (StreamWriter streamWriter = new StreamWriter(filePath, append: true)) {
+                    streamWriter.WriteLine(message);
+                    streamWriter.Close();
+                }
+            }
         }
     }
 
