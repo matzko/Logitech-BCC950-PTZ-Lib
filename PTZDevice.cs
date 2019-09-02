@@ -20,24 +20,21 @@ namespace PTZ
     {
         static bool doLog = true;
         private readonly Guid PROPSETID_VIDCAP_CAMERACONTROL = new Guid(0xc6e13370, 0x30ac, 0x11d0, 0xa1, 0x8c, 0x00, 0xa0, 0xc9, 0x11, 0x89, 0x56);
-        
         private DsDevice _device;
         private IAMCameraControl _camControl;
         private IKsPropertySet _ksPropertySet;
-        private PTZType _type = PTZType.Relative;
 
         public int ZoomMin { get; set; }
         public int ZoomMax { get; set; }
         public int ZoomStep { get; set; }
         public int ZoomDefault { get; set; }
 
-        private PTZDevice(string name, PTZType type)
+        private PTZDevice(string name)
         {
             var devices = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
             var device = devices.Where(d => d.Name == name).FirstOrDefault();
 
             _device = device;
-            _type = type;
 
             if (_device == null) throw new ApplicationException(String.Format("Couldn't find device named {0}!", name));
 
@@ -53,16 +50,18 @@ namespace PTZ
             if (_ksPropertySet == null) throw new ApplicationException("Couldn't get IKsPropertySet!");
 
             //TODO: Add Absolute
+            /*
             if (type == PTZType.Relative &&
                 !(SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PAN_RELATIVE) &&
                 SupportFor(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_TILT_RELATIVE)))
             {
                 throw new NotSupportedException("This camera doesn't appear to support Relative Pan and Tilt");
             }
+            /**/
 
             //TODO: Do I through NotSupported when methods are called or throw them now?
 
-            //TODO: Do I check for Zoom or ignore if it's not there? 
+            //TODO: Do I check for Zoom or ignore if it's not there?
             InitZoomRanges();
         }
 
@@ -108,7 +107,7 @@ namespace PTZ
         public void Move(int x, int y) //TODO: Is this the best public API? Should work for Relative AND Absolute, right?
         {
             //TODO: Make it work for Absolute also...using the PTZEnum
-            
+
             //first, tilt
             if (y != 0)
             {
@@ -119,6 +118,125 @@ namespace PTZ
             {
                 MoveLongTime(KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PAN_RELATIVE, x);
             }
+        }
+
+        public static int MakeWord(sbyte low, sbyte high)
+        {
+            return ((int)high << 8) | low;
+        }
+
+        private void MoveDirection(
+            KSProperties.CameraControlFeature cameraControlFeature,
+            int durationMilliseconds,
+            int value
+            )
+        {
+            // Create and prepare data structures
+            var control = new KSProperties.KSPROPERTY_CAMERACONTROL_S();
+
+            IntPtr controlData = Marshal.AllocCoTaskMem(Marshal.SizeOf(control));
+            IntPtr instData = Marshal.AllocCoTaskMem(Marshal.SizeOf(control.Instance));
+
+            control.Instance.Value = value;
+
+            //TODO: Fix for Absolute
+            control.Instance.Flags = (int)CameraControlFlags.Relative;
+
+            Marshal.StructureToPtr(control, controlData, true);
+            Marshal.StructureToPtr(control.Instance, instData, true);
+
+            _ksPropertySet.Set(
+                PROPSETID_VIDCAP_CAMERACONTROL,
+                (int) cameraControlFeature,
+                instData,
+                Marshal.SizeOf(control.Instance),
+                controlData, Marshal.SizeOf(control)
+            );
+
+            // do stop after a while, to be safe
+            Thread.Sleep(durationMilliseconds);
+
+            control.Instance.Value = 0; //STOP!
+            control.Instance.Flags = (int) CameraControlFlags.Relative;
+
+            Marshal.StructureToPtr(control, controlData, true);
+            Marshal.StructureToPtr(control.Instance, instData, true);
+
+            _ksPropertySet.Set(
+                PROPSETID_VIDCAP_CAMERACONTROL,
+                (int) cameraControlFeature,
+                instData,
+                Marshal.SizeOf(control.Instance),
+                controlData, Marshal.SizeOf(control)
+            );
+
+            if (controlData != IntPtr.Zero) { Marshal.FreeCoTaskMem(controlData); }
+            if (instData != IntPtr.Zero) { Marshal.FreeCoTaskMem(instData); }
+        }
+
+        public void MoveUp(int durationMilliseconds)
+        {
+            MoveDirection(
+                KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_TILT_RELATIVE,
+                durationMilliseconds,
+                1
+            );
+        }
+
+        public void MoveDown(int durationMilliseconds)
+        {
+            MoveDirection(
+                KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_TILT_RELATIVE,
+                durationMilliseconds,
+                -1
+            );
+        }
+
+        public void MoveLeft(int durationMilliseconds)
+        {
+            MoveDirection(
+                KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PAN_RELATIVE,
+                durationMilliseconds,
+                -1
+            );
+        }
+
+        public void MoveRight(int durationMilliseconds)
+        {
+            MoveDirection(
+                KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_PAN_RELATIVE,
+                durationMilliseconds,
+                1
+            );
+        }
+
+        public int ZoomIn(int durationMilliseconds)
+        {
+            MoveDirection(
+                KSProperties.CameraControlFeature.KSPROPERTY_CAMERACONTROL_ZOOM,
+                durationMilliseconds,
+                10
+            );
+            int oldZoom = GetCurrentZoom();
+            int newZoom = ZoomDefault;
+            newZoom = oldZoom + 10; //10 is magic...could be anything?
+
+            newZoom = Math.Max(ZoomMin, newZoom);
+            newZoom = Math.Min(ZoomMax, newZoom);
+            _camControl.Set(CameraControlProperty.Zoom, newZoom, CameraControlFlags.Manual);
+            return newZoom;
+        }
+
+        public int ZoomOut(int durationMilliseconds)
+        {
+            int oldZoom = GetCurrentZoom();
+            int newZoom = ZoomDefault;
+            newZoom = oldZoom - 10;
+
+            newZoom = Math.Max(ZoomMin, newZoom);
+            newZoom = Math.Min(ZoomMax, newZoom);
+            _camControl.Set(CameraControlProperty.Zoom, newZoom, CameraControlFlags.Manual);
+            return newZoom;
         }
 
         private void MoveLongTime(KSProperties.CameraControlFeature axis, int value)
@@ -214,7 +332,7 @@ namespace PTZ
             var e = _camControl.Get(CameraControlProperty.Zoom, out oldZoom, out oldFlags);
             return oldZoom;
         }
-        
+
         private void InitZoomRanges()
         {
             int iMin, iMax, iStep, iDefault;
@@ -231,7 +349,7 @@ namespace PTZ
         public int Zoom(int direction)
         {
             int oldZoom = GetCurrentZoom();
-            int newZoom = ZoomDefault; 
+            int newZoom = ZoomDefault;
             if (direction > 0)
                 newZoom = oldZoom + 10; //10 is magic...could be anything?
             else if (direction < 0)
@@ -243,9 +361,9 @@ namespace PTZ
             return newZoom;
         }
 
-        public static PTZDevice GetDevice(string name, PTZType type)
+        public static PTZDevice GetDevice(string name)
         {
-            return new PTZDevice(name, type);
+            return new PTZDevice(name);
         }
 
         static void Log(String message)
